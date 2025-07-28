@@ -278,12 +278,6 @@ const FolderTreeNode = (props: FolderTreeNodeProps) => {
   // 统一的节点点击处理函数
   const handleNodeClick = async (e: Event, segments: string[]) => {
     e.stopPropagation()
-    console.log("\n========== 节点点击开始 ==========")
-    console.log("事件类型:", e.type)
-    console.log("事件目标:", e.target)
-    console.log("点击的路径段:", segments)
-    console.log("当前节点状态:", nodeState())
-    console.log("当前选中路径:", selectedPaths?.())
 
     if (multiSelect && onSelect) {
       // 获取当前节点的选中状态
@@ -323,6 +317,13 @@ const FolderTreeNode = (props: FolderTreeNodeProps) => {
   const load = async () => {
     if (children()?.length) return
     const resp = await fetchDirs()
+    if (
+      resp.code === 500 &&
+      resp.message?.includes("storage not found; please add a storage first")
+    ) {
+      setChildren([])
+      return
+    }
     handleResp(
       resp,
       (data) => {
@@ -480,6 +481,12 @@ const FolderTreeNode = (props: FolderTreeNodeProps) => {
 const getChildrenPaths = async (path: string): Promise<string[]> => {
   try {
     const resp = await fsDirs(path, password(), true)
+    if (
+      resp.code === 500 &&
+      resp.message?.includes("storage not found; please add a storage first")
+    ) {
+      return []
+    }
     if (resp.code === 200) {
       return resp.data
         .filter((item: Obj) => item.is_dir)
@@ -495,6 +502,12 @@ const getChildrenPaths = async (path: string): Promise<string[]> => {
 const getChildrenNodes = async (path: string): Promise<PathNode[]> => {
   try {
     const resp = await fsDirs(path, password(), true)
+    if (
+      resp.code === 500 &&
+      resp.message?.includes("storage not found; please add a storage first")
+    ) {
+      return []
+    }
 
     if (resp.code === 200 && Array.isArray(resp.data)) {
       // API 返回的都是文件夹，直接映射成节点
@@ -523,6 +536,12 @@ const getSiblingPaths = async (path: string): Promise<PathNode[]> => {
   const parentPath = pathBase(path) || "/"
   try {
     const resp = await fsDirs(parentPath, password(), true)
+    if (
+      resp.code === 500 &&
+      resp.message?.includes("storage not found; please add a storage first")
+    ) {
+      return []
+    }
     if (resp.code === 200 && Array.isArray(resp.data)) {
       return resp.data.map((item: Obj) => {
         const siblingPath = pathJoin(parentPath, item.name)
@@ -639,6 +658,12 @@ const checkAllChildrenSelected = async (
 ): Promise<boolean> => {
   try {
     const resp = await fsDirs("/" + parentPath.join("/"), password(), true)
+    if (
+      resp.code === 500 &&
+      resp.message?.includes("storage not found; please add a storage first")
+    ) {
+      return false
+    }
     if (resp.code === 200) {
       const dirs = resp.data.filter((item: Obj) => item.is_dir)
       // 检查每个子目录是否都被选中
@@ -694,6 +719,14 @@ const optimizeSelectedPaths = async (
       // 获取父路径下的实际子目录
       try {
         const resp = await fsDirs("/" + parentPathStr, password(), true)
+        if (
+          resp.code === 500 &&
+          resp.message?.includes(
+            "storage not found; please add a storage first",
+          )
+        ) {
+          continue
+        }
         if (resp.code === 200) {
           // 后端返回的都是文件夹，不需要过滤
           const actualDirs = resp.data

@@ -19,7 +19,16 @@ import { isMac } from "~/utils/compatibility"
 
 export const Header = () => {
   const logos = getSetting("logo").split("\n")
-  const logo = useColorModeValue(logos[0], logos.pop())
+  const defaultLogo =
+    logos[0] === "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
+      ? "/images/new_icon.png"
+      : logos[0]
+  const logo = useColorModeValue(
+    defaultLogo,
+    logos.pop() === "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
+      ? "/images/new_icon.png"
+      : logos.pop(),
+  )
 
   const stickyProps = createMemo<CenterProps>(() => {
     switch (local["position_of_header_navbar"]) {

@@ -23,11 +23,17 @@ import {
   Checkbox,
   Alert,
   AlertIcon,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
 } from "@hope-ui/solid"
 import { MaybeLoading } from "~/components"
 import { ChooseTree } from "~/components/ChooseTree"
 import { useFetch, useRouter, useT } from "~/hooks"
-import { handleResp, notify, pathJoin } from "~/utils"
+import { handleResp, notify, pathJoin, r } from "~/utils"
 import { createStore } from "solid-js/store"
 import { For, createSignal, onMount, Show } from "solid-js"
 import {
@@ -174,7 +180,7 @@ const optimizePaths = async (paths: string[]): Promise<string[]> => {
 
 const AddOrEdit = () => {
   const t = useT()
-  const { params, back } = useRouter()
+  const { params, back, to } = useRouter()
   const { id } = params
   const [role, setRole] = createStore<RoleForm>({
     name: "",
@@ -185,6 +191,26 @@ const AddOrEdit = () => {
 
   const [permissions, setPermissions] = createSignal<Permission[]>([])
   const [currentPermission, setCurrentPermission] = createSignal(0)
+  const [hasStorage, setHasStorage] = createSignal(false)
+  const [showNoStorageModal, setShowNoStorageModal] = createSignal(false)
+
+  // 检查存储状态
+  const checkStorage = async () => {
+    try {
+      const resp: Resp<any> = await r.get("/fs/list")
+      if (
+        resp.code === 500 &&
+        resp.message?.includes("please add a storage first")
+      ) {
+        setShowNoStorageModal(true)
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error("Failed to check storage:", err)
+      return false
+    }
+  }
 
   // const [permissionsLoading, loadPermissions] = useFetch(
   //     () => getPermissionList(),
@@ -193,6 +219,10 @@ const AddOrEdit = () => {
   const [roleLoading, loadRole] = useFetch(() => getRoleDetail(parseInt(id)))
 
   const initData = async () => {
+    const hasStorageNow = await checkStorage()
+    setHasStorage(hasStorageNow)
+    if (!hasStorageNow) return
+
     if (id) {
       const roleResp = await loadRole()
       handleResp<Role>(roleResp, (data) => {
@@ -323,59 +353,81 @@ const AddOrEdit = () => {
     <VStack spacing="$2" alignItems="start" w="$full">
       <Heading>{id ? t("global.edit") : t("global.add")}</Heading>
       <MaybeLoading loading={roleLoading()}>
-        <VStack spacing="$2" alignItems="start" w="$full">
-          <FormControl required>
-            <FormLabel>{t("permissions.role.role_name")}</FormLabel>
-            <Input
-              value={role.name}
-              onInput={(e) => setRole("name", e.currentTarget.value)}
-            />
-          </FormControl>
+        <Show when={hasStorage()}>
+          <VStack spacing="$2" alignItems="start" w="$full">
+            <FormControl required>
+              <FormLabel>{t("permissions.role.role_name")}</FormLabel>
+              <Input
+                value={role.name}
+                onInput={(e) => setRole("name", e.currentTarget.value)}
+              />
+            </FormControl>
 
-          <FormControl>
-            <FormLabel>{t("permissions.role.role_description")}</FormLabel>
-            <Input
-              value={role.description}
-              onInput={(e) => setRole("description", e.currentTarget.value)}
-            />
-          </FormControl>
-          <FormControl required>
-            <FormLabel>{t("users.base_path")}</FormLabel>
-            <ChooseTree
-              id="base_path"
-              value={role.base_path}
-              onChange={(paths) => {
-                setRole("base_path", paths)
-              }}
-              multiSelect
-              autoOpen={!!id}
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel>
-              {t("permissions.config.permissions_permissions")}
-            </FormLabel>
-            <Select multiple value={getSelectedPermissions()}>
-              <SelectTrigger>
-                <Box
-                  display="flex"
-                  flexWrap="wrap"
-                  gap="$2"
-                  pr="$6"
-                  py="$2"
-                  minH="40px"
-                  alignItems="center"
-                >
-                  <Show
-                    when={getSelectedPermissions().length > 0}
-                    fallback={
-                      <SelectPlaceholder>
-                        {t("permissions.config.select_permissions")}
-                      </SelectPlaceholder>
-                    }
+            <FormControl>
+              <FormLabel>{t("permissions.role.role_description")}</FormLabel>
+              <Input
+                value={role.description}
+                onInput={(e) => setRole("description", e.currentTarget.value)}
+              />
+            </FormControl>
+            <FormControl required>
+              <FormLabel>{t("users.base_path")}</FormLabel>
+              <ChooseTree
+                id="base_path"
+                value={role.base_path}
+                onChange={(paths) => {
+                  setRole("base_path", paths)
+                }}
+                multiSelect
+                autoOpen={!!id}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>
+                {t("permissions.config.permissions_permissions")}
+              </FormLabel>
+              <Select multiple value={getSelectedPermissions()}>
+                <SelectTrigger>
+                  <Box
+                    display="flex"
+                    flexWrap="wrap"
+                    gap="$2"
+                    pr="$6"
+                    py="$2"
+                    minH="40px"
+                    alignItems="center"
                   >
-                    <For each={getSelectedPermissions().slice(0, 3)}>
-                      {(item, i) => (
+                    <Show
+                      when={getSelectedPermissions().length > 0}
+                      fallback={
+                        <SelectPlaceholder>
+                          {t("permissions.config.select_permissions")}
+                        </SelectPlaceholder>
+                      }
+                    >
+                      <For each={getSelectedPermissions().slice(0, 3)}>
+                        {(item, i) => (
+                          <Tag
+                            size="lg"
+                            variant="subtle"
+                            bgColor="$neutral2"
+                            rounded="$sm"
+                            px="$3"
+                            py="$1"
+                          >
+                            <TagLabel>
+                              {t(`users.permissions.${item}`)}
+                            </TagLabel>
+                            <TagCloseButton
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                togglePermission(UserPermissions.indexOf(item))
+                              }}
+                            />
+                          </Tag>
+                        )}
+                      </For>
+                      <Show when={getSelectedPermissions().length > 3}>
                         <Tag
                           size="lg"
                           variant="subtle"
@@ -384,80 +436,89 @@ const AddOrEdit = () => {
                           px="$3"
                           py="$1"
                         >
-                          <TagLabel>{t(`users.permissions.${item}`)}</TagLabel>
-                          <TagCloseButton
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              togglePermission(UserPermissions.indexOf(item))
-                            }}
-                          />
+                          <TagLabel>
+                            +{getSelectedPermissions().length - 3}
+                          </TagLabel>
                         </Tag>
+                      </Show>
+                    </Show>
+                  </Box>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectListbox>
+                    <For each={UserPermissions}>
+                      {(item, i) => (
+                        <SelectOption
+                          value={item}
+                          onClick={() => togglePermission(i())}
+                        >
+                          <HStack spacing="$2" w="$full" pl="$4" fontSize="$lg">
+                            <Checkbox
+                              checked={((currentPermission() >> i()) & 1) === 1}
+                              readOnly
+                            />
+                            <SelectOptionText>
+                              {t(`users.permissions.${item}`)}
+                            </SelectOptionText>
+                          </HStack>
+                        </SelectOption>
                       )}
                     </For>
-                    <Show when={getSelectedPermissions().length > 3}>
-                      <Tag
-                        size="lg"
-                        variant="subtle"
-                        bgColor="$neutral2"
-                        rounded="$sm"
-                        px="$3"
-                        py="$1"
-                      >
-                        <TagLabel>
-                          +{getSelectedPermissions().length - 3}
-                        </TagLabel>
-                      </Tag>
-                    </Show>
-                  </Show>
-                </Box>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectListbox>
-                  <For each={UserPermissions}>
-                    {(item, i) => (
-                      <SelectOption
-                        value={item}
-                        onClick={() => togglePermission(i())}
-                      >
-                        <HStack spacing="$2" w="$full" pl="$4" fontSize="$lg">
-                          <Checkbox
-                            checked={((currentPermission() >> i()) & 1) === 1}
-                            readOnly
-                          />
-                          <SelectOptionText>
-                            {t(`users.permissions.${item}`)}
-                          </SelectOptionText>
-                        </HStack>
-                      </SelectOption>
-                    )}
-                  </For>
-                </SelectListbox>
-              </SelectContent>
-            </Select>
-          </FormControl>
+                  </SelectListbox>
+                </SelectContent>
+              </Select>
+            </FormControl>
 
-          <HStack spacing="$2">
-            <Button
-              loading={okLoading()}
-              onClick={async () => {
-                if (!validateForm()) {
-                  return
-                }
-                const resp = await ok()
-                handleResp(resp, () => {
-                  notify.success(t("global.save_success"))
-                  back()
-                })
-              }}
-            >
-              {t("global.save")}
-            </Button>
-            <Button colorScheme="accent" onClick={() => back()}>
-              {t("global.back")}
-            </Button>
-          </HStack>
-        </VStack>
+            <HStack spacing="$2">
+              <Button
+                loading={okLoading()}
+                onClick={async () => {
+                  if (!validateForm()) {
+                    return
+                  }
+                  const resp = await ok()
+                  handleResp(resp, () => {
+                    notify.success(t("global.save_success"))
+                    back()
+                  })
+                }}
+              >
+                {t("global.save")}
+              </Button>
+              <Button colorScheme="accent" onClick={() => back()}>
+                {t("global.back")}
+              </Button>
+            </HStack>
+          </VStack>
+        </Show>
       </MaybeLoading>
+      <Modal
+        opened={showNoStorageModal()}
+        onClose={() => setShowNoStorageModal(false)}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader></ModalHeader>
+          <ModalBody>{t("storages.no_storage_content")}</ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="accent"
+              onClick={() => setShowNoStorageModal(false)}
+            >
+              {t("global.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                setShowNoStorageModal(false)
+                to("/@manage/storages")
+              }}
+              ml="$2"
+            >
+              {t("home.go_to_storages")}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </VStack>
   )
 }

@@ -232,6 +232,18 @@ const AddOrEdit = () => {
           <Button
             loading={okLoading()}
             onClick={async () => {
+              // 校验密码不能为空
+              if (!user.password.trim()) {
+                notify.error(t("users.password") + " " + t("global.required"))
+                return
+              }
+
+              // 校验角色不能为空
+              if (!user.role || user.role.length === 0) {
+                notify.error(t("users.role") + " " + t("global.required"))
+                return
+              }
+
               const resp = await ok()
               handleResp(resp, () => {
                 notify.success(t("global.save_success"))

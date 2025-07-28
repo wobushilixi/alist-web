@@ -146,7 +146,7 @@ const EditLabelDialog = (props: EditLabelDialogProps) => {
                         </SelectPlaceholder>
                       }
                     >
-                      <For each={selectedLabelIds()}>
+                      <For each={selectedLabelIds().slice(0, 3)}>
                         {(labelId) => (
                           <Tag
                             size="lg"
@@ -166,7 +166,7 @@ const EditLabelDialog = (props: EditLabelDialogProps) => {
                           </Tag>
                         )}
                       </For>
-                      <Show when={selectedLabelIds().length >= 3}>
+                      <Show when={selectedLabelIds().length > 3}>
                         <Tag
                           size="lg"
                           variant="subtle"

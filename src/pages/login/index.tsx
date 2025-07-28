@@ -41,10 +41,14 @@ import {
   supported,
   CredentialRequestOptionsJSON,
 } from "@github/webauthn-json/browser-ponyfill"
+import { BsArrowLeftRight } from "solid-icons/bs"
 
 const Login = () => {
   const t = useT()
-  useTitle("密码登录")
+  const usertitle = createMemo(() => {
+    return `${t("login.login_to")} ${getSetting("site_title")}`
+  })
+  useTitle(usertitle)
   const bgColor = useColorModeValue("white", "$neutral1")
   const [username, setUsername] = createSignal(
     localStorage.getItem("username") || "",
@@ -57,6 +61,10 @@ const Login = () => {
   const [useauthn, setuseauthn] = createSignal(false)
   const [remember, setRemember] = createStorageSignal("remember-pwd", "false")
   const [useLdap, setUseLdap] = createSignal(false)
+  const [useNewVersion, setUseNewVersion] = createStorageSignal(
+    "login-version",
+    "true",
+  )
   const [loading, data] = useFetch(
     async (): Promise<Resp<{ token: string }>> => {
       if (useLdap()) {
@@ -219,94 +227,220 @@ const Login = () => {
     setUseLdap(true)
   }
 
+  const toggleVersion = () => {
+    setUseNewVersion(useNewVersion() === "true" ? "false" : "true")
+  }
+
+  const title = () => t("login.password_login")
+  const logo = () => getSetting("logo").split("\n")[0]
+
   return (
     <Center zIndex="1" w="$full" h="100vh">
       <VStack spacing="$6" alignItems="center">
-        {/* AList Logo and Text */}
-        <HStack alignItems="center" spacing="$2">
-          <Image
-            boxSize="$10"
-            src={getSetting("logo").split("\n")[0]}
-            alt="AList Logo"
-          />
-          <Heading color="#3573FF" fontSize="42px" fontWeight="bold">
-            AList
-          </Heading>
-        </HStack>
+        <Show when={useNewVersion() === "true"}>
+          <HStack alignItems="center" spacing="$2">
+            <Image
+              w="151px"
+              h="48px"
+              src={
+                getSetting("logo").split("\n")[0] ===
+                "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
+                  ? "/images/new_icon.png"
+                  : getSetting("logo").split("\n")[0]
+              }
+              alt="AList Logo"
+            />
+          </HStack>
+        </Show>
 
-        {/* Login Form Container */}
-        <VStack
-          bgColor={bgColor()}
-          rounded="$xl"
-          p="24px"
-          w={{
-            "@initial": "90%",
-            "@sm": "420px",
-          }}
-          spacing="$4"
-        >
-          <Flex alignItems="center" justifyContent="center">
-            <Heading color="#3573FF" fontSize="18px">
-              {t("login.password_login")}
-            </Heading>
-          </Flex>
-          <Divider borderColor="#E9E9E9" />
-          <Show
-            when={!needOpt()}
-            fallback={
-              <Input
-                id="totp"
-                name="otp"
-                placeholder={t("login.otp-tips")}
-                value={opt()}
-                onInput={(e) => setOpt(e.currentTarget.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    Login()
-                  }
-                }}
-              />
-            }
-          >
-            <HStack
-              w="$full"
-              // bgColor="$neutral2"
-              border="1px solid"
-              borderColor="$neutral6"
-              borderRadius="12px"
-              px="$3"
-              spacing="$2"
-              alignItems="center"
-              _focusWithin={{
-                borderColor: "$primary6",
-                boxShadow: "0 0 0 1px $colors$primary6",
+        <Show
+          when={useNewVersion() === "true"}
+          fallback={
+            <VStack
+              bgColor={bgColor()}
+              rounded="$xl"
+              p="24px"
+              w={{
+                "@initial": "90%",
+                "@sm": "364px",
               }}
+              spacing="$4"
             >
-              <Icon as={FiUser} color="$neutral8" boxSize="$5" />
-              <Input
-                name="username"
-                placeholder="请输入账号"
-                value={username()}
-                onInput={(e) => setUsername(e.currentTarget.value)}
-                border="none"
-                bgColor="transparent"
-                _focus={{
-                  border: "none",
-                  boxShadow: "none",
-                  bgColor: "transparent",
+              <Flex alignItems="center" justifyContent="space-around">
+                <Image mr="$2" boxSize="$12" src={logo()} />
+                <Heading color="$info9" fontSize="$2xl">
+                  {title()}
+                </Heading>
+              </Flex>
+              <Show
+                when={!needOpt()}
+                fallback={
+                  <Input
+                    id="totp"
+                    name="otp"
+                    placeholder={t("login.otp-tips")}
+                    value={opt()}
+                    onInput={(e) => setOpt(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        Login()
+                      }
+                    }}
+                  />
+                }
+              >
+                <Input
+                  name="username"
+                  placeholder={t("login.username-tips")}
+                  value={username()}
+                  onInput={(e) => setUsername(e.currentTarget.value)}
+                />
+                <Show when={!useauthn()}>
+                  <Input
+                    name="password"
+                    placeholder={t("login.password-tips")}
+                    type="password"
+                    value={password()}
+                    onInput={(e) => setPassword(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        Login()
+                      }
+                    }}
+                  />
+                </Show>
+                <Flex
+                  px="$1"
+                  w="$full"
+                  fontSize="$sm"
+                  color="$neutral10"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Checkbox
+                    checked={remember() === "true"}
+                    onChange={() =>
+                      setRemember(remember() === "true" ? "false" : "true")
+                    }
+                  >
+                    {t("login.remember")}
+                  </Checkbox>
+                  <Text as="a" target="_blank" href={t("login.forget_url")}>
+                    {t("login.forget")}
+                  </Text>
+                </Flex>
+              </Show>
+              <HStack w="$full" spacing="$2">
+                <Show when={!useauthn()}>
+                  <Button
+                    colorScheme="primary"
+                    w="$full"
+                    onClick={() => {
+                      if (needOpt()) {
+                        setOpt("")
+                      } else {
+                        setUsername("")
+                        setPassword("")
+                      }
+                    }}
+                  >
+                    {t("login.clear")}
+                  </Button>
+                </Show>
+                <Button w="$full" loading={loading()} onClick={Login}>
+                  {t("login.login")}
+                </Button>
+              </HStack>
+              <Show when={ldapLoginEnabled}>
+                <Checkbox
+                  w="$full"
+                  checked={useLdap() === true}
+                  onChange={() => setUseLdap(!useLdap())}
+                >
+                  {ldapLoginTips}
+                </Checkbox>
+              </Show>
+              <Button
+                w="$full"
+                colorScheme="accent"
+                onClick={() => {
+                  changeToken()
+                  to(
+                    decodeURIComponent(
+                      searchParams.redirect || base_path || "/",
+                    ),
+                    true,
+                  )
                 }}
-                _hover={{
-                  border: "none",
-                  boxShadow: "none",
-                  bgColor: "transparent",
-                }}
-                flex={1}
-              />
-            </HStack>
-            <Show when={!useauthn()}>
+              >
+                {t("login.use_guest")}
+              </Button>
+              <Flex
+                mt="$2"
+                justifyContent="space-evenly"
+                alignItems="center"
+                color="$neutral10"
+                w="$full"
+              >
+                <SwitchLanguageWhite />
+                <SwitchColorMode />
+                <SSOLogin />
+                <Icon
+                  cursor="pointer"
+                  boxSize="$7"
+                  as={BsArrowLeftRight}
+                  p="$0_5"
+                  onClick={toggleVersion}
+                />
+                <Show when={AuthnSignEnabled}>
+                  <Icon
+                    cursor="pointer"
+                    boxSize="$8"
+                    as={IoFingerPrint}
+                    p="$0_5"
+                    onclick={AuthnSwitch}
+                  />
+                </Show>
+              </Flex>
+            </VStack>
+          }
+        >
+          {/* 新版本的登录表单 */}
+          <VStack
+            bgColor={bgColor()}
+            rounded="$xl"
+            p="24px"
+            w={{
+              "@initial": "90%",
+              "@sm": "420px",
+            }}
+            spacing="$4"
+          >
+            <Flex alignItems="center" justifyContent="center">
+              <Heading color="#3573FF" fontSize="18px">
+                {t("login.password_login")}
+              </Heading>
+            </Flex>
+            <Divider borderColor="#E9E9E9" />
+            <Show
+              when={!needOpt()}
+              fallback={
+                <Input
+                  id="totp"
+                  name="otp"
+                  placeholder={t("login.otp-tips")}
+                  value={opt()}
+                  onInput={(e) => setOpt(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      Login()
+                    }
+                  }}
+                />
+              }
+            >
               <HStack
                 w="$full"
-                // bgColor="$neutral2"
                 border="1px solid"
                 borderColor="$neutral6"
                 borderRadius="12px"
@@ -318,131 +452,174 @@ const Login = () => {
                   boxShadow: "0 0 0 1px $colors$primary6",
                 }}
               >
-                <Icon as={FiLock} color="$neutral8" boxSize="$5" />
+                <Icon as={FiUser} color="$neutral8" boxSize="$5" />
                 <Input
-                  name="password"
-                  placeholder="请输入密码"
-                  type={showPassword() ? "text" : "password"}
-                  value={password()}
-                  onInput={(e) => setPassword(e.currentTarget.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      Login()
-                    }
-                  }}
+                  name="username"
+                  placeholder="请输入账号"
+                  value={username()}
+                  onInput={(e) => setUsername(e.currentTarget.value)}
                   border="none"
-                  bgColor="transparent"
+                  backgroundColor="transparent"
                   _focus={{
                     border: "none",
                     boxShadow: "none",
-                    bgColor: "transparent",
+                    backgroundColor: "transparent",
                   }}
                   _hover={{
                     border: "none",
                     boxShadow: "none",
-                    bgColor: "transparent",
+                    backgroundColor: "transparent",
                   }}
                   flex={1}
                 />
-                <IconButton
-                  size="md"
-                  variant="ghost"
-                  icon={showPassword() ? <FiEyeOff /> : <FiEye />}
-                  onClick={() => setShowPassword(!showPassword())}
-                  color="$neutral8"
-                  aria-label={showPassword() ? "隐藏密码" : "显示密码"}
-                  _hover={{
-                    backgroundColor: "$neutral3",
-                  }}
-                />
               </HStack>
+              <Show when={!useauthn()}>
+                <HStack
+                  w="$full"
+                  border="1px solid"
+                  borderColor="$neutral6"
+                  borderRadius="12px"
+                  px="$3"
+                  spacing="$2"
+                  alignItems="center"
+                  _focusWithin={{
+                    borderColor: "$primary6",
+                    boxShadow: "0 0 0 1px $colors$primary6",
+                  }}
+                >
+                  <Icon as={FiLock} color="$neutral8" boxSize="$5" />
+                  <Input
+                    name="password"
+                    placeholder="请输入密码"
+                    type={showPassword() ? "text" : "password"}
+                    value={password()}
+                    onInput={(e) => setPassword(e.currentTarget.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        Login()
+                      }
+                    }}
+                    border="none"
+                    backgroundColor="transparent"
+                    _focus={{
+                      border: "none",
+                      boxShadow: "none",
+                      backgroundColor: "transparent",
+                    }}
+                    _hover={{
+                      border: "none",
+                      boxShadow: "none",
+                      backgroundColor: "transparent",
+                    }}
+                    flex={1}
+                  />
+                  <IconButton
+                    size="md"
+                    variant="ghost"
+                    icon={showPassword() ? <FiEyeOff /> : <FiEye />}
+                    onClick={() => setShowPassword(!showPassword())}
+                    color="$neutral8"
+                    aria-label={showPassword() ? "隐藏密码" : "显示密码"}
+                    _hover={{
+                      backgroundColor: "$neutral3",
+                    }}
+                  />
+                </HStack>
+              </Show>
             </Show>
-          </Show>
-          <VStack w="$full" spacing="$4">
-            <Button
-              w="$full"
-              loading={loading()}
-              onClick={Login}
-              bgColor="#3573FF"
-              color="white"
-              _hover={{
-                backgroundColor: "#2B5CD9",
-              }}
-              _active={{
-                backgroundColor: "#1E40AF",
-              }}
-              h="45px"
-              fontSize="16px"
-              fontWeight="bold"
-              borderRadius="12px"
-              mt="$5"
-            >
-              {t("login.login")}
-            </Button>
+            <VStack w="$full" spacing="$4">
+              <Button
+                w="$full"
+                loading={loading()}
+                onClick={Login}
+                bgColor="#3573FF"
+                color="white"
+                _hover={{
+                  backgroundColor: "#2B5CD9",
+                }}
+                _active={{
+                  backgroundColor: "#1E40AF",
+                }}
+                h="45px"
+                fontSize="16px"
+                fontWeight="bold"
+                borderRadius="12px"
+                mt="$5"
+              >
+                {t("login.login")}
+              </Button>
 
-            <HStack
-              w="$full"
-              justifyContent="space-between"
+              <HStack
+                w="$full"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <Text
+                  as="a"
+                  target="_blank"
+                  href={t("login.forget_url")}
+                  color="#3573FF"
+                  fontSize="14px"
+                  cursor="pointer"
+                  _hover={{
+                    textDecoration: "underline",
+                  }}
+                >
+                  {t("login.forget")}
+                </Text>
+                <Text
+                  as="a"
+                  onClick={() => {
+                    changeToken()
+                    to(
+                      decodeURIComponent(
+                        searchParams.redirect || base_path || "/",
+                      ),
+                      true,
+                    )
+                  }}
+                  color="#3573FF"
+                  fontSize="14px"
+                  cursor="pointer"
+                  _hover={{
+                    textDecoration: "underline",
+                  }}
+                >
+                  {t("login.use_guest")}
+                </Text>
+              </HStack>
+            </VStack>
+            <Flex
+              mt="$2"
+              justifyContent="space-evenly"
               alignItems="center"
+              color="$neutral10"
+              w="$full"
             >
-              <Text
-                as="a"
-                target="_blank"
-                href={t("login.forget_url")}
-                color="#3573FF"
-                fontSize="14px"
-                cursor="pointer"
-                _hover={{
-                  textDecoration: "underline",
-                }}
-              >
-                {t("login.forget")}
-              </Text>
-              <Text
-                as="a"
-                onClick={() => {
-                  changeToken()
-                  to(
-                    decodeURIComponent(
-                      searchParams.redirect || base_path || "/",
-                    ),
-                    true,
-                  )
-                }}
-                color="#3573FF"
-                fontSize="14px"
-                cursor="pointer"
-                _hover={{
-                  textDecoration: "underline",
-                }}
-              >
-                {t("login.use_guest")}
-              </Text>
-            </HStack>
-          </VStack>
-          <Flex
-            mt="$2"
-            justifyContent="space-evenly"
-            alignItems="center"
-            color="$neutral10"
-            w="$full"
-          >
-            <SwitchLanguageWhite />
-            <SwitchColorMode />
-            <SSOLogin />
-            <Show when={AuthnSignEnabled}>
+              <SwitchLanguageWhite />
+              <SwitchColorMode />
+              <SSOLogin />
               <Icon
                 cursor="pointer"
-                boxSize="$8"
-                as={IoFingerPrint}
+                boxSize="$7"
+                as={BsArrowLeftRight}
                 p="$0_5"
-                onclick={AuthnSwitch}
+                onClick={toggleVersion}
               />
-            </Show>
-          </Flex>
-        </VStack>
+              <Show when={AuthnSignEnabled}>
+                <Icon
+                  cursor="pointer"
+                  boxSize="$8"
+                  as={IoFingerPrint}
+                  p="$0_5"
+                  onclick={AuthnSwitch}
+                />
+              </Show>
+            </Flex>
+          </VStack>
+        </Show>
       </VStack>
-      <LoginBg />
+      <LoginBg useNewVersion={useNewVersion() === "true"} />
     </Center>
   )
 }
