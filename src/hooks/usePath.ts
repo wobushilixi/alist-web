@@ -270,10 +270,11 @@ export const usePath = () => {
   }
 
   const handleErr = (msg: string, code?: number) => {
+    const currentPath = pathname()
+    const userPermissions = me().permissions || []
     // 如果是403权限错误，返回到根目录并显示权限目录
     if (code === 403) {
-      const userPermissions = me().permissions || []
-      if (userPermissions.length > 0) {
+      if (currentPath === "/" || userPermissions.length === 0) {
         const permDirs = userPermissions.map((perm) => ({
           name: perm.path.split("/").filter(Boolean).pop() || perm.path,
           size: 0,
@@ -290,10 +291,11 @@ export const usePath = () => {
         ObjStore.setObjs(permDirs)
         ObjStore.setTotal(permDirs.length)
         ObjStore.setState(State.Folder)
-        // 跳转到根目录
         to("/")
-        return
+      } else {
+        ObjStore.setState(State.NeedPassword)
       }
+      return
     }
 
     // 如果是存储未找到错误
@@ -305,11 +307,6 @@ export const usePath = () => {
       ObjStore.setState(State.Initial)
       return
     }
-
-    // 获取当前访问的路径
-    const currentPath = pathname()
-    // 获取用户权限路径
-    const userPermissions = me().permissions || []
 
     // 如果是根路径访问，显示所有权限目录
     if (currentPath === "/") {
@@ -356,7 +353,10 @@ export const usePath = () => {
         }
       }
     }
+    ObjStore.setErr(msg)
+    ObjStore.setState(State.Initial)
   }
+
   const loadMore = () => {
     return handleFolder(pathname(), globalPage + 1, undefined, true)
   }
