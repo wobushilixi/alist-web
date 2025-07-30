@@ -31,7 +31,7 @@ import {
 import { PResp, Resp } from "~/types"
 import LoginBg from "./LoginBg"
 import { createStorageSignal } from "@solid-primitives/storage"
-import { getSetting, getSettingBool } from "~/store"
+import { getSetting, getSettingBool, setSettings } from "~/store"
 import { SSOLogin } from "./SSOLogin"
 import { IoFingerPrint } from "solid-icons/io"
 import {
@@ -41,7 +41,6 @@ import {
   supported,
   CredentialRequestOptionsJSON,
 } from "@github/webauthn-json/browser-ponyfill"
-import { BsArrowLeftRight } from "solid-icons/bs"
 
 const Login = () => {
   const t = useT()
@@ -61,10 +60,28 @@ const Login = () => {
   const [useauthn, setuseauthn] = createSignal(false)
   const [remember, setRemember] = createStorageSignal("remember-pwd", "false")
   const [useLdap, setUseLdap] = createSignal(false)
-  const [useNewVersion, setUseNewVersion] = createStorageSignal(
-    "login-version",
-    "true",
+
+  // 获取最新的设置数据
+  const [settingsLoading, getSettings] = useFetch(
+    (): Promise<Resp<Record<string, string>>> => r.get("/public/settings"),
   )
+
+  // 刷新设置数据
+  const refreshSettings = async () => {
+    const resp = await getSettings()
+    handleResp(resp, (data) => {
+      setSettings(data)
+    })
+  }
+
+  // 使用 public/settings 接口中的 use_newui 字段
+  const useNewVersion = createMemo(() => getSetting("use_newui") === "true")
+
+  // 页面加载时刷新设置
+  onMount(() => {
+    refreshSettings()
+  })
+
   const [loading, data] = useFetch(
     async (): Promise<Resp<{ token: string }>> => {
       if (useLdap()) {
@@ -116,7 +133,6 @@ const Login = () => {
       PublicKeyCredential &&
       "isConditionalMediationAvailable" in PublicKeyCredential
     ) {
-      // @ts-expect-error
       return await PublicKeyCredential.isConditionalMediationAvailable()
     } else {
       return false
@@ -152,7 +168,6 @@ const Login = () => {
         const options = parseRequestOptionsFromJSON(data.options)
         options.signal = controller.signal
         if (conditional) {
-          // @ts-expect-error
           options.mediation = "conditional"
         }
         const credentials = await get(options)
@@ -227,17 +242,13 @@ const Login = () => {
     setUseLdap(true)
   }
 
-  const toggleVersion = () => {
-    setUseNewVersion(useNewVersion() === "true" ? "false" : "true")
-  }
-
   const title = () => t("login.password_login")
   const logo = () => getSetting("logo").split("\n")[0]
 
   return (
     <Center zIndex="1" w="$full" h="100vh">
       <VStack spacing="$6" alignItems="center">
-        <Show when={useNewVersion() === "true"}>
+        <Show when={useNewVersion()}>
           <HStack alignItems="center" spacing="$2">
             <Image
               w="151px"
@@ -254,7 +265,7 @@ const Login = () => {
         </Show>
 
         <Show
-          when={useNewVersion() === "true"}
+          when={useNewVersion()}
           fallback={
             <VStack
               bgColor={bgColor()}
@@ -385,13 +396,6 @@ const Login = () => {
                 <SwitchLanguageWhite />
                 <SwitchColorMode />
                 <SSOLogin />
-                <Icon
-                  cursor="pointer"
-                  boxSize="$7"
-                  as={BsArrowLeftRight}
-                  p="$0_5"
-                  onClick={toggleVersion}
-                />
                 <Show when={AuthnSignEnabled}>
                   <Icon
                     cursor="pointer"
@@ -599,13 +603,6 @@ const Login = () => {
               <SwitchLanguageWhite />
               <SwitchColorMode />
               <SSOLogin />
-              <Icon
-                cursor="pointer"
-                boxSize="$7"
-                as={BsArrowLeftRight}
-                p="$0_5"
-                onClick={toggleVersion}
-              />
               <Show when={AuthnSignEnabled}>
                 <Icon
                   cursor="pointer"
@@ -619,7 +616,7 @@ const Login = () => {
           </VStack>
         </Show>
       </VStack>
-      <LoginBg useNewVersion={useNewVersion() === "true"} />
+      <LoginBg useNewVersion={useNewVersion()} />
     </Center>
   )
 }
