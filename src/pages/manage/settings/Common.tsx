@@ -3,7 +3,7 @@ import { Group, SettingItem, PResp, PEmptyResp, EmptyResp } from "~/types"
 import { r, notify, getTarget, handleResp } from "~/utils"
 import { createStore } from "solid-js/store"
 import { Button, HStack, VStack } from "@hope-ui/solid"
-import { createSignal, Index } from "solid-js"
+import { createSignal, Index, createMemo } from "solid-js"
 import { Item } from "./SettingItem"
 import { ResponsiveGrid } from "../common/ResponsiveGrid"
 
@@ -28,10 +28,38 @@ const CommonSettings = (props: CommonSettingsProps) => {
     (): PEmptyResp => r.post("/admin/setting/save", getTarget(settings)),
   )
   const [loading, setLoading] = createSignal(false)
+
+  // 对设置项进行排序，将 use_newui 放在 allow_indexed 之后
+  const sortedSettings = createMemo(() => {
+    const settingsArray = [...settings]
+    const allowIndexedIndex = settingsArray.findIndex(
+      (item) => item.key === "allow_indexed",
+    )
+    const useNewuiIndex = settingsArray.findIndex(
+      (item) => item.key === "use_newui",
+    )
+
+    if (allowIndexedIndex !== -1 && useNewuiIndex !== -1) {
+      // 如果 use_newui 在 allow_indexed 之前，需要重新排序
+      if (useNewuiIndex < allowIndexedIndex) {
+        const useNewuiItem = settingsArray.splice(useNewuiIndex, 1)[0]
+        // 将 use_newui 插入到 allow_indexed 之后
+        settingsArray.splice(allowIndexedIndex, 0, useNewuiItem)
+      } else if (useNewuiIndex > allowIndexedIndex + 1) {
+        // 如果 use_newui 在 allow_indexed 之后但不是紧挨着，也需要调整
+        const useNewuiItem = settingsArray.splice(useNewuiIndex, 1)[0]
+        // 将 use_newui 插入到 allow_indexed 之后
+        settingsArray.splice(allowIndexedIndex + 1, 0, useNewuiItem)
+      }
+    }
+
+    return settingsArray
+  })
+
   return (
     <VStack w="$full" alignItems="start" spacing="$2">
       <ResponsiveGrid>
-        <Index each={settings}>
+        <Index each={sortedSettings()}>
           {(item, _) => (
             <Item
               {...item()}
