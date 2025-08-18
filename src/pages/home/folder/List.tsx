@@ -13,9 +13,6 @@ import { OrderBy } from "~/store"
 import { Col, cols, ListItem } from "./ListItem"
 import { ItemCheckbox, useSelectWithMouse } from "./helper"
 import { bus } from "~/utils"
-import { UserMethods, UserPermissions } from "~/types"
-import { me } from "~/store"
-import { getCurrentPath } from "~/store/obj"
 
 export const ListTitle = (props: {
   sortCallback: (orderBy: OrderBy, reverse?: boolean) => void
@@ -65,15 +62,12 @@ export const ListTitle = (props: {
       <Text w={cols[1].w} {...itemProps(cols[1])}>
         {t(`home.obj.${cols[1].name}`)}
       </Text>
-      <Text w={cols[2].w} {...itemProps(cols[2])}>
-        {t(`home.obj.${cols[2].name}`)}
-      </Text>
       <Text
-        w={cols[3].w}
-        {...itemProps(cols[3])}
+        w={cols[2].w}
+        {...itemProps(cols[2])}
         display={{ "@initial": "none", "@md": "inline" }}
       >
-        {t(`home.obj.${cols[3].name}`)}
+        {t(`home.obj.${cols[2].name}`)}
       </Text>
     </HStack>
   )
