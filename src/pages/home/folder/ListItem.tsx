@@ -47,14 +47,14 @@ export const cols: Col[] = [
   {
     name: "name",
     textAlign: "left",
-    w: { "@initial": "calc(100% - 100px)", "@md": "50%" },
+    w: { "@initial": "calc(100% - 100px)", "@md": "35%" },
   },
   {
     name: "size",
     textAlign: "right",
     w: { "@initial": "100px", "@md": "12%" },
   },
-  { name: "modified", textAlign: "right", w: { "@initial": 0, "@md": "25%" } },
+  { name: "modified", textAlign: "right", w: { "@initial": 0, "@md": "20%" } },
 ]
 
 // 添加选中统计组件
@@ -218,61 +218,79 @@ export const ListItem = (props: { obj: StoreObj & Obj; index: number }) => {
                 fontSize={{ "@initial": "sm", "@md": "md" }}
                 css={{
                   position: "relative",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
                   flex: 1,
                   minWidth: 0,
                   cursor: "pointer",
+                  ...(filenameStyle() === "ellipsis" && {
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }),
+                  ...(filenameStyle() === "scrollable" && {
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                  }),
+                  ...(filenameStyle() === "multi_line" && {
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    lineHeight: "1.4",
+                  }),
                 }}
                 title={props.obj.name}
               >
-                <div
-                  ref={(el) => {
-                    if (el) {
-                      onMount(() => {
-                        const checkWidth = () => {
-                          const parent = el.parentElement
-                          if (parent && el.scrollWidth > parent.clientWidth) {
-                            el.classList.add("should-marquee")
-                          } else {
-                            el.classList.remove("should-marquee")
+                <Show when={filenameStyle() === "scrollable"}>
+                  <div
+                    ref={(el) => {
+                      if (el) {
+                        onMount(() => {
+                          const checkWidth = () => {
+                            const parent = el.parentElement
+                            if (parent && el.scrollWidth > parent.clientWidth) {
+                              el.classList.add("should-marquee")
+                            } else {
+                              el.classList.remove("should-marquee")
+                            }
                           }
-                        }
-                        checkWidth()
-                        // 监听窗口大小变化，重新检查是否需要滚动
-                        window.addEventListener("resize", checkWidth)
-                        onCleanup(() => {
-                          window.removeEventListener("resize", checkWidth)
+                          checkWidth()
+                          // 监听窗口大小变化，重新检查是否需要滚动
+                          window.addEventListener("resize", checkWidth)
+                          onCleanup(() => {
+                            window.removeEventListener("resize", checkWidth)
+                          })
                         })
-                      })
+                      }
+                    }}
+                    style={{
+                      display: "inline-block",
+                      "white-space": "nowrap",
+                      "padding-right": "50px",
+                    }}
+                  >
+                    {props.obj.name}
+                  </div>
+                  <style>
+                    {`
+                    .should-marquee:hover {
+                      animation: marquee 8s linear infinite;
                     }
-                  }}
-                  style={{
-                    display: "inline-block",
-                    "white-space": "nowrap",
-                    "padding-right": "50px",
-                  }}
-                >
+                    @keyframes marquee {
+                      0% { transform: translateX(0); }
+                      100% { transform: translateX(calc(-100% + ${cols[0].w["@initial"]})); }
+                    }
+                    `}
+                  </style>
+                </Show>
+                <Show when={filenameStyle() !== "scrollable"}>
                   {props.obj.name}
-                </div>
-                <style>
-                  {`
-                  .should-marquee:hover {
-                    animation: marquee 8s linear infinite;
-                  }
-                  @keyframes marquee {
-                    0% { transform: translateX(0); }
-                    100% { transform: translateX(calc(-100% + ${cols[0].w["@initial"]})); }
-                  }
-                  `}
-                </style>
+                </Show>
               </Text>
             </HStack>
             <HStack
               spacing="$0_5"
               justifyContent="flex-start"
               overflow="hidden"
-              w="8%"
+              w="25%"
+              minW="200px"
               display={{ "@initial": "none", "@md": "flex" }}
             >
               <Show when={props.obj.label_list?.length}>
@@ -286,7 +304,7 @@ export const ListItem = (props: { obj: StoreObj & Obj; index: number }) => {
                         variant="solid"
                         mr="$0_5"
                         textTransform="none"
-                        maxW="80px"
+                        maxW="120px"
                         overflow="hidden"
                         css={{
                           textOverflow: "ellipsis",
@@ -309,7 +327,7 @@ export const ListItem = (props: { obj: StoreObj & Obj; index: number }) => {
               display="flex"
               justifyContent={{ "@initial": "flex-end", "@md": "flex-start" }}
               flexShrink={0}
-              pr={{ "@initial": "0", "@md": "$4" }}
+              pr={{ "@initial": "0", "@md": "$2" }}
             >
               <Text
                 class="size"
@@ -324,8 +342,8 @@ export const ListItem = (props: { obj: StoreObj & Obj; index: number }) => {
             <Text
               class="modified"
               display={{ "@initial": "none", "@md": "inline" }}
-              w="25%"
-              minW="25%"
+              w="20%"
+              minW="20%"
               textAlign="right"
               css={{
                 whiteSpace: "nowrap",
