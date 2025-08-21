@@ -25,9 +25,10 @@ export const Header = () => {
       : logos[0]
   const logo = useColorModeValue(
     defaultLogo,
-    logos.pop() === "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
+    logos[logos.length - 1] ===
+      "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
       ? "/images/new_icon.png"
-      : logos.pop(),
+      : logos[logos.length - 1] || defaultLogo,
   )
 
   const stickyProps = createMemo<CenterProps>(() => {
@@ -66,7 +67,6 @@ export const Header = () => {
             <Show when={objStore.state === State.Folder}>
               <Show when={getSetting("search_index") !== "none"}>
                 <HStack
-                  bg="$neutral4"
                   w="$32"
                   p="$1"
                   rounded="$md"
@@ -74,9 +74,17 @@ export const Header = () => {
                   border="2px solid transparent"
                   cursor="pointer"
                   color={getMainColor()}
-                  bgColor={changeColor(getMainColor(), { alpha: 0.15 })}
+                  style={{
+                    backgroundColor: changeColor(getMainColor(), {
+                      alpha: 0.15,
+                    }),
+                  }}
                   _hover={{
-                    bgColor: changeColor(getMainColor(), { alpha: 0.2 }),
+                    style: {
+                      backgroundColor: changeColor(getMainColor(), {
+                        alpha: 0.2,
+                      }),
+                    },
                   }}
                   onClick={() => {
                     bus.emit("tool", "search")
