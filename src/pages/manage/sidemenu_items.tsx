@@ -21,6 +21,7 @@ import { CgDatabase } from "solid-icons/cg"
 import { OcWorkflow2 } from "solid-icons/oc"
 import { IoCopy, IoHome, IoMagnetOutline } from "solid-icons/io"
 import { Component, lazy } from "solid-js"
+import { joinBase } from "~/utils"
 import { Group, UserRole } from "~/types"
 import { FaSolidBook, FaSolidDatabase } from "solid-icons/fa"
 import { TbArchive } from "solid-icons/tb"
@@ -93,7 +94,9 @@ export const side_menu_items: SideMenuItem[] = [
         icon: (props: { active?: boolean; style?: any }) => (
           <img
             src={
-              props.active ? "/images/tag-active.png" : "/images/tag-gray.png"
+              props.active
+                ? joinBase("/images/tag-active.png")
+                : joinBase("/images/tag-gray.png")
             }
             alt="search"
             style={{ width: "1.1em", height: "1.1em", ...(props.style || {}) }}

@@ -13,7 +13,7 @@ import { getMainColor, getSetting, local, objStore, State } from "~/store"
 import { BsSearch } from "solid-icons/bs"
 import { CenterLoading } from "~/components"
 import { Container } from "../Container"
-import { bus } from "~/utils"
+import { bus, joinBase } from "~/utils"
 import { Layout } from "./layout"
 import { isMac } from "~/utils/compatibility"
 
@@ -21,13 +21,13 @@ export const Header = () => {
   const logos = getSetting("logo").split("\n")
   const defaultLogo =
     logos[0] === "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
-      ? "/images/new_icon.png"
+      ? joinBase("/images/new_icon.png")
       : logos[0]
   const logo = useColorModeValue(
     defaultLogo,
     logos[logos.length - 1] ===
       "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
-      ? "/images/new_icon.png"
+      ? joinBase("/images/new_icon.png")
       : logos[logos.length - 1] || defaultLogo,
   )
 

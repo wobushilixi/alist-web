@@ -27,6 +27,7 @@ import {
   base_path,
   handleResp,
   hashPwd,
+  joinBase,
 } from "~/utils"
 import { PResp, Resp } from "~/types"
 import LoginBg from "./LoginBg"
@@ -310,7 +311,7 @@ const Login = () => {
               src={
                 getSetting("logo").split("\n")[0] ===
                 "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
-                  ? "/images/new_icon.png"
+                  ? joinBase("/images/new_icon.png")
                   : getSetting("logo").split("\n")[0]
               }
               alt="AList Logo"
