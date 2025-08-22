@@ -306,7 +306,7 @@ const Login = () => {
           <HStack alignItems="center" spacing="$2">
             <Image
               w="151px"
-              h="48px"
+              h="auto"
               src={
                 getSetting("logo").split("\n")[0] ===
                 "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg"
