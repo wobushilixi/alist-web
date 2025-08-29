@@ -105,7 +105,7 @@ const Login = () => {
   })
 
   const [loading, data] = useFetch(
-    async (): Promise<Resp<{ token: string }>> => {
+    async (): Promise<Resp<{ token: string; device_key?: string }>> => {
       if (useLdap()) {
         return r.post("/auth/login/ldap", {
           username: username(),
@@ -137,7 +137,7 @@ const Login = () => {
       credentials: AuthenticationPublicKeyCredential,
       username: string,
       signal: AbortSignal | undefined,
-    ): Promise<Resp<{ token: string }>> =>
+    ): Promise<Resp<{ token: string; device_key?: string }>> =>
       r.post(
         "/authn/webauthn_finish_login?username=" + username,
         JSON.stringify(credentials),
@@ -212,6 +212,19 @@ const Login = () => {
         handleRespWithoutNotify(resp, (data) => {
           notify.success(t("login.success"))
           changeToken(data.token)
+          // 保存 device_key 到 localStorage
+          if (data.device_key) {
+            localStorage.setItem("device_key", data.device_key)
+            console.log("=== Login Debug (Hash) ===")
+            console.log("Saved device_key:", data.device_key)
+            console.log("Full response data:", data)
+            console.log("========================")
+          } else {
+            console.log("=== Login Debug (Hash) ===")
+            console.log("No device_key in response")
+            console.log("Full response data:", data)
+            console.log("========================")
+          }
           to(
             decodeURIComponent(searchParams.redirect || base_path || "/"),
             true,
@@ -272,6 +285,19 @@ const Login = () => {
           (data) => {
             notify.success(t("login.success"))
             changeToken(data.token)
+            // 保存 device_key 到 localStorage
+            if (data.device_key) {
+              localStorage.setItem("device_key", data.device_key)
+              console.log("=== Login Debug ===")
+              console.log("Saved device_key:", data.device_key)
+              console.log("Full response data:", data)
+              console.log("==================")
+            } else {
+              console.log("=== Login Debug ===")
+              console.log("No device_key in response")
+              console.log("Full response data:", data)
+              console.log("==================")
+            }
             to(
               decodeURIComponent(searchParams.redirect || base_path || "/"),
               true,
