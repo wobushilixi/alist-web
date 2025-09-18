@@ -15,7 +15,7 @@ const buildSettingsPayload = (settings: SettingItem[]) => {
   const allowRegister = target.find((item) => item.key === "allow_register")
 
   if (allowRegister?.value !== "true") {
-    return target.filter((item) => item.key !== "default_user")
+    return target.filter((item) => item.key !== "default_role")
   }
 
   return target
